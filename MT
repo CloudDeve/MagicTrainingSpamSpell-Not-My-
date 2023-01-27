@@ -1,4 +1,4 @@
---loadstring(game:HttpGet(""))()
+--loadstring(game:HttpGet("https://raw.githubusercontent.com/CloudDeve/MagicTrainingSpamSpell-Not-My-/main/MT"))()
 
 -- Instances:
 

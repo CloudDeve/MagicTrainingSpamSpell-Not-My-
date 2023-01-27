@@ -1,0 +1,945 @@
+--loadstring(game:HttpGet(""))()
+
+-- Instances:
+
+local ScreenGui = Instance.new("ScreenGui")
+local Body = Instance.new("Frame")
+local TextBox = Instance.new("TextBox")
+local TextLabel = Instance.new("TextLabel")
+
+--Properties:
+
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
+
+Body.Name = "Body "
+Body.Parent = ScreenGui
+Body.BackgroundColor3 = Color3.fromRGB(121, 121, 121)
+Body.Position = UDim2.new(0.646578193, 0, 0.752969146, 0)
+Body.Size = UDim2.new(0, 180, 0, 57)
+
+TextBox.Parent = Body
+TextBox.BackgroundColor3 = Color3.fromRGB(198, 198, 198)
+TextBox.Position = UDim2.new(0.0166666675, 0, 0.374800622, 0)
+TextBox.Size = UDim2.new(0, 174, 0, 28)
+TextBox.Font = Enum.Font.SourceSans
+TextBox.Text = "Type Spell Here"
+TextBox.TextColor3 = Color3.fromRGB(0, 0, 0)
+TextBox.TextSize = 14.000
+
+TextLabel.Parent = Body
+TextLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+TextLabel.BackgroundTransparency = 1.000
+TextLabel.Position = UDim2.new(0.116666667, 0, 0, 0)
+TextLabel.Size = UDim2.new(0, 138, 0, 14)
+TextLabel.Font = Enum.Font.Gotham
+TextLabel.Text = "Wizard Hack"
+TextLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+TextLabel.TextScaled = true
+TextLabel.TextSize = 14.000
+TextLabel.TextWrapped = true
+
+-- Services
+local store = game:GetService("ReplicatedStorage");
+local UIS = game:GetService("UserInputService")
+
+-- Player Variables
+local plr = game.Players.LocalPlayer
+local char = plr.Character;
+local hum = char:WaitForChild("Humanoid");
+local root = char:WaitForChild("HumanoidRootPart");
+local mouse = plr:GetMouse();
+
+-- Various Variables
+local anims = store:WaitForChild("Animations");
+local animNo = 1
+local events = store:FindFirstChild("Events") or game:GetService("InsertService"):FindFirstChild("Events");
+
+-- Choose casting Animation
+castAnims = {};
+for v1 = 1, 3 do
+	castAnims[v1] = game.Players.LocalPlayer.Character.Humanoid:LoadAnimation(anims["cast" .. v1]);
+end;
+castAnim = castAnims[1];
+
+-- Casting Anim function
+function setAttackAnim()
+	animNo = ({ { 2, 3 }, { 1, 3 }, { 1, 2 } })[animNo][math.random(1, 2)];
+	castAnim = castAnims[animNo];
+end;
+
+
+-- Sound IDs 
+castDefault = 1014454856;
+castLightning = 521311884;
+castCurse = 984776549;
+castSoft = 522294173;
+castFire = 521308536;
+castFrost = 521309278;
+missDefault = 1014462782;
+missNeutral = 3008597262;
+hitDefault = 520219440;
+hitFire = 520817382;
+hitExplosion = 522282998;
+hitHeal = 523122491;
+hitFrost = 520816557;
+
+-- Gotta get that projectile data
+local SpellData = {
+	projectileData = {}, 
+	uniqueSpells = {}, 
+	hitEffects = {}
+};
+SpellData.projectileData["avada kedavra"] = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0.4, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 1.2, 
+	trailLength = 0.15, 
+	trailWidth = 0.2, 
+	color = Color3.new(0, 1, 0.3), 
+	shieldDamage = 20, 
+	castSound = castDefault, 
+	missSound = hitDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.expelliarmus = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.8, 
+	trailLength = 0.15, 
+	trailWidth = 0.2, 
+	color = Color3.new(1, 0, 0), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.stupefy = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.2, 
+	trailLength = 0.04, 
+	trailWidth = 0.2, 
+	color = Color3.new(1, 1, 1), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.flare = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 5, 
+	coolDown = 0.3, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.3, 
+	trailLength = 0.08, 
+	trailWidth = 0.15, 
+	color = Color3.new(1, 0, 0), 
+	shieldDamage = 4, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.reducto = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.2, 
+	trailLength = 0.04, 
+	trailWidth = 0.2, 
+	color = Color3.new(1, 1, 1), 
+	shieldDamage = 20, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = missDefault
+};
+SpellData.projectileData.expulso = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 3, 
+	coolDown = 0.3, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.4, 
+	trailLength = 0.04, 
+	trailWidth = 0.225, 
+	color = Color3.new(0.2, 0.6, 1), 
+	shieldDamage = 20, 
+	castSound = castDefault, 
+	missSound = hitFire, 
+	hitSound = hitFire
+};
+SpellData.projectileData.bombarda = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 0.4, 
+	coolDown = 0.4, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.4, 
+	trailLength = 0.04, 
+	trailWidth = 0.25, 
+	color = Color3.new(1, 0.2, 0.2), 
+	shieldDamage = 20, 
+	castSound = castDefault, 
+	missSound = hitExplosion, 
+	hitSound = hitExplosion
+};
+SpellData.projectileData.tonitro = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 400, 
+	range = 400, 
+	amplitude = 1.2, 
+	trailLength = 0.5, 
+	trailWidth = 0.15, 
+	color = Color3.new(0, 0.6, 1), 
+	shieldDamage = 20, 
+	castSound = castLightning, 
+	missSound = hitDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.depulso = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 1, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(0.8, 0, 1), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.rictusempra = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.4, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(1, 0.5, 0.5), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData["everte statum"] = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.4, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(1, 0.7, 0.3), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.flipendo = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.4, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(0, 0.6, 1), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.episkey = {
+	hostile = false, 
+	endHit = false, 
+	maxCasts = 3, 
+	coolDown = 0.3, 
+	speed = 60, 
+	range = 100, 
+	amplitude = 0.05, 
+	trailLength = 0.06, 
+	trailWidth = 0.1, 
+	color = Color3.new(1, 1, 0.2), 
+	shieldDamage = 0, 
+	castSound = castSoft, 
+	missSound = missDefault, 
+	hitSound = hitHeal
+};
+SpellData.projectileData["vulnera sanentur"] = {
+	hostile = false, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 60, 
+	range = 100, 
+	amplitude = 0.05, 
+	trailLength = 0.06, 
+	trailWidth = 0.1, 
+	color = Color3.new(1, 0.7, 0.3), 
+	shieldDamage = 0, 
+	castSound = castSoft, 
+	missSound = missDefault, 
+	hitSound = hitHeal
+};
+SpellData.projectileData.relashio = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.4, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(0.8, 0.5, 1), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.rennervate = {
+	hostile = false, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 60, 
+	range = 400, 
+	amplitude = 0.1, 
+	trailLength = 0.06, 
+	trailWidth = 0.1, 
+	color = Color3.new(1, 0.3, 0.3), 
+	shieldDamage = 0, 
+	castSound = castSoft, 
+	missSound = missDefault, 
+	hitSound = hitHeal
+};
+SpellData.projectileData["carpe retractum"] = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.3, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(1, 0.3, 0), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.deletrius = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0.4, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 1.2, 
+	trailLength = 0.15, 
+	trailWidth = 0.2, 
+	color = Color3.new(0.7, 0.2, 1), 
+	shieldDamage = 20, 
+	castSound = castLightning, 
+	missSound = hitDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.impedimenta = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.6, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(0, 0.2, 1), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData["locomotor wibbly"] = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.6, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(1, 0.6, 0), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData["alarte ascendare"] = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.6, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(1, 0.1, 0.1), 
+	shieldDamage = 20, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.levicorpus = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.6, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(0.5, 1, 0.5), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.liberacorpus = {
+	hostile = false, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 60, 
+	range = 100, 
+	amplitude = 0.2, 
+	trailLength = 0.06, 
+	trailWidth = 0.1, 
+	color = Color3.new(1, 1, 1), 
+	shieldDamage = 0, 
+	castSound = castSoft, 
+	missSound = missDefault, 
+	hitSound = hitHeal
+};
+SpellData.projectileData.duro = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.6, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(0, 0.4, 1), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData["finite incantatem"] = {
+	hostile = false, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 60, 
+	range = 400, 
+	amplitude = 0.1, 
+	trailLength = 0.06, 
+	trailWidth = 0.1, 
+	color = Color3.new(1, 0.3, 0.5), 
+	shieldDamage = 0, 
+	castSound = castSoft, 
+	missSound = missDefault, 
+	hitSound = hitHeal
+};
+SpellData.projectileData["petrificus totalus"] = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.6, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(0.2, 0.6, 1), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.accio = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.4, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(0, 0.4, 1), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missNeutral, 
+	hitSound = missNeutral
+};
+SpellData.projectileData.obscuro = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.4, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(0, 0, 0), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missNeutral, 
+	hitSound = missNeutral
+};
+SpellData.projectileData.tarantallegra = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.4, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(1, 0.3, 1), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missNeutral, 
+	hitSound = missNeutral
+};
+SpellData.projectileData.confundo = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.6, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(0, 0.5, 1), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missNeutral, 
+	hitSound = missNeutral
+};
+SpellData.projectileData.silencio = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.6, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(0.2, 0.2, 1), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missNeutral, 
+	hitSound = missNeutral
+};
+SpellData.projectileData.obliviate = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.6, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(0.6, 1, 0.6), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missNeutral, 
+	hitSound = missNeutral
+};
+SpellData.projectileData.calvorio = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.4, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(1, 0.1, 0), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missNeutral, 
+	hitSound = missNeutral
+};
+SpellData.projectileData["engorgio skullus"] = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.4, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(0.4, 1, 0.4), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missNeutral, 
+	hitSound = missNeutral
+};
+SpellData.projectileData.sectumsempra = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0.4, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.8, 
+	trailLength = 0.15, 
+	trailWidth = 0.2, 
+	color = Color3.new(1, 1, 1), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.defodio = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0.4, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.8, 
+	trailLength = 0.15, 
+	trailWidth = 0.225, 
+	color = Color3.new(1, 0.2, 0.2), 
+	shieldDamage = 20, 
+	castSound = castDefault, 
+	missSound = hitFire, 
+	hitSound = hitFire
+};
+SpellData.projectileData.crucio = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 1.2, 
+	trailLength = 0.15, 
+	trailWidth = 0.2, 
+	color = Color3.new(1, 0.1, 0.1), 
+	shieldDamage = 20, 
+	castSound = castDefault, 
+	missSound = missNeutral, 
+	hitSound = missNeutral
+};
+SpellData.projectileData.incendio = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 150, 
+	range = 400, 
+	amplitude = 0.2, 
+	trailLength = 0.15, 
+	trailWidth = 0.6, 
+	color = Color3.new(1, 0.42, 0), 
+	shieldDamage = 20, 
+	castSound = castFire, 
+	missSound = hitFire, 
+	hitSound = hitFire
+};
+SpellData.projectileData.confringo = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0.4, 
+	speed = 150, 
+	range = 400, 
+	amplitude = 0.2, 
+	trailLength = 0.15, 
+	trailWidth = 0.6, 
+	color = Color3.new(1, 0.42, 0), 
+	shieldDamage = 20, 
+	castSound = castFire, 
+	missSound = hitFire, 
+	hitSound = hitFire
+};
+SpellData.projectileData.glacius = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.6, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(0.3, 0.8, 1), 
+	shieldDamage = 0, 
+	castSound = castFrost, 
+	missSound = hitFrost, 
+	hitSound = hitFrost
+};
+SpellData.projectileData.incarcerous = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.8, 
+	trailLength = 0.15, 
+	trailWidth = 0.2, 
+	color = Color3.new(1, 0.1, 0.1), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.diminuendo = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.6, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(1, 1, 1), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.diffindo = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.6, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(0.5, 1, 0.5), 
+	shieldDamage = 5, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = missNeutral
+};
+SpellData.projectileData.melofors = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.6, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(1, 0.3, 0), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missNeutral, 
+	hitSound = missNeutral
+};
+SpellData.projectileData.baubillious = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 10, 
+	coolDown = 0.2, 
+	speed = 320, 
+	range = 400, 
+	amplitude = 1, 
+	trailLength = 0.3, 
+	trailWidth = 0.15, 
+	color = Color3.new(1, 1, 0.7), 
+	shieldDamage = 2, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.verdimillious = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 3, 
+	coolDown = 0.3, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.6, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(0.3, 1, 0.3), 
+	shieldDamage = 6, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.ebublio = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 1, 
+	coolDown = 0, 
+	speed = 250, 
+	range = 400, 
+	amplitude = 0.4, 
+	trailLength = 0.1, 
+	trailWidth = 0.2, 
+	color = Color3.new(1, 0.3, 1), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missNeutral, 
+	hitSound = missNeutral
+};
+SpellData.projectileData.morsmordre = {
+	hostile = true, 
+	endHit = true, 
+	maxCasts = 0, 
+	coolDown = 0.2, 
+	speed = 250, 
+	range = 300, 
+	amplitude = 1, 
+	trailLength = 0.05, 
+	trailWidth = 0.3, 
+	color = Color3.new(0, 1, 0.4), 
+	shieldDamage = 0, 
+	castSound = castDefault, 
+	missSound = missDefault, 
+	hitSound = hitDefault
+};
+SpellData.projectileData.aboleo = {
+	hostile = true, 
+	endHit = false, 
+	maxCasts = 3, 
+	coolDown = 0.2, 
+	speed = 200, 
+	range = 400, 
+	amplitude = 0.6, 
+	trailLength = 0.06, 
+	trailWidth = 0.2, 
+	color = Color3.new(0.2, 0.6, 1), 
+	shieldDamage = 34, 
+	castSound = castDefault, 
+	missSound = hitDefault, 
+	hitSound = hitDefault
+};
+
+function GetWand()
+	if char:FindFirstChild("Wand") then
+		return char.Wand
+	else
+		return nil
+	end
+end
+
+function fireSpell(p15)
+	local tool = GetWand()	
+		
+	local v19 = SpellData.projectileData[p15];
+	
+	if v19.hostile then
+		castAnim:Play(0.1, 1, 2);
+		setAttackAnim();
+	end;
+	
+	local idk = game.Players.LocalPlayer.Character.RightHand.Position
+	local MousePos = mouse.Hit.p;
+	
+	local SpellID = tostring(plr.Name .. game.Workspace.DistributedGameTime);
+	events.spellFired:FireServer({
+		tool = "Wand", 
+		a = idk, 
+		b = MousePos, 
+		spellName = p15, 
+		id = SpellID
+	})
+	events.fireSpellLocal:Fire({
+		a = idk, 
+		b = MousePos, 
+		spellName = p15, 
+		caster = plr, 
+		id = SpellID
+	});
+end;
+
+function returnSpell(boxtext)
+	if SpellData.projectileData[boxtext.Text] then
+		return boxtext.Text
+	else
+		return nil
+	end
+end
+
+UIS.InputBegan:Connect(function(input)
+	local inputType = input.UserInputType
+	if inputType == Enum.UserInputType.MouseButton1 then
+		hold = true
+	end
+end)    
+
+UIS.InputEnded:Connect(function(input)
+	local inputType = input.UserInputType
+	if inputType == Enum.UserInputType.MouseButton1 then
+		hold = false
+	end
+end)
+
+while wait() do
+	if hold == true then
+		if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then
+			fireSpell(returnSpell(TextBox))
+		end
+	end
+end
